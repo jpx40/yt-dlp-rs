@@ -1,0 +1,19 @@
+path = "~/Music/babymetal"
+
+
+videos = [
+  "https://www.youtube.com/watch?v=oO7Y8NsnkRg",
+  "https://www.youtube.com/watch?v=pAM8MQt6I6I",
+  "https://www.youtube.com/watch?v=xtHBcL6vbVA",
+  "https://www.youtube.com/watch?v=yimhcrsC2SU",
+  "https://www.youtube.com/watch?v=ALznpaBWUTo",
+  "https://www.youtube.com/watch?v=7rdc-QV6P6s",
+  "https://www.youtube.com/watch?v=GvD3CHA48pA",
+  "https://www.youtube.com/watch?v=ng8mh6JUIqY",
+  "https://www.youtube.com/watch?v=hkij4LvACZ0",
+  'https://www.youtube.com/watch?v=Gz9_j1SpX5E',
+  "https://www.youtube.com/watch?v=7uOoH2PTYl0",
+  "https://www.youtube.com/watch?v=1ce456Nnkt8",
+  "https://www.youtube.com/watch?v=4IP_bGgEPHY",
+
+]
