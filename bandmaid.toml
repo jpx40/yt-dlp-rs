@@ -1,0 +1,12 @@
+path = "~/Music/bandmaid"
+
+videos = [
+  "https://www.youtube.com/watch?v=knnw6Mri9gc",
+  "https://www.youtube.com/watch?v=9TkHpvaO09c",
+  "https://www.youtube.com/watch?v=MZIJ2vFxu9Y",
+  "https://www.youtube.com/watch?v=ItYN-ri1NPs",
+  "https://www.youtube.com/watch?v=gXjNsTS5bEY",
+  "https://www.youtube.com/watch?v=obXVrwIwk2k",
+  "https://www.youtube.com/watch?v=MZIJ2vFxu9Y",
+  "https://www.youtube.com/watch?v=9TkHpvaO09c",
+]

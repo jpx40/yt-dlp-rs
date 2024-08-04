@@ -1,0 +1,6 @@
+path = "~/Music/Linkin_Park"
+
+videos = [
+  "https://www.youtube.com/watch?v=eVTXPUF4Oz4",
+  "https://www.youtube.com/watch?time_continue=2&v=ZTNtxNgB-3U",
+]

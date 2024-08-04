@@ -1,6 +1,8 @@
+mod api;
 use clap::Parser;
 pub use dirs::home_dir;
 use fs_extra::file;
+
 use itertools::Itertools;
 use rayon::iter::IntoParallelRefMutIterator;
 use rayon::prelude::*;
@@ -15,7 +17,6 @@ use std::{
     path::{Component, Path, PathBuf, MAIN_SEPARATOR_STR},
 };
 use walkdir::{DirEntry, WalkDir};
-
 #[derive(Parser, Debug)]
 pub struct Cli {
     file: String,
@@ -27,6 +28,8 @@ pub struct Videos {
     pub path: String,
     pub videos: Vec<String>,
 }
+
+pub const API_KEY: &str = "AIzaSyC9keOcdbVqDuQCtZYHzivGbX8l5jwVPaw";
 
 impl Videos {
     pub fn new(path: String) -> Self {
@@ -69,7 +72,7 @@ impl Videos {
     pub fn to_videos(&mut self) -> Vec<Video> {
         let mut videos: Vec<Video> = Vec::new();
         for v in &self.videos {
-            let mut video = Video::new(v.to_string());
+            let mut video = Video::new(v.to_string(), self.path.clone());
             video.path = self.path.clone();
             videos.push(video);
         }
@@ -80,6 +83,9 @@ impl Videos {
 #[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Video {
     pub name: String,
+    pub id: String,
+
+    pub title: String,
     pub url: String,
     pub path: String,
     pub format: String,
@@ -90,11 +96,14 @@ pub struct Video {
 }
 
 impl Video {
-    pub fn new(url: String) -> Self {
+    pub fn new(url: String, path: String) -> Self {
         Self {
             name: String::new(),
+            title: String::new(),
+            id: api::extract_id(url.as_str()),
             url,
-            path: String::new(),
+
+            path,
             format: "140".to_string(),
             quality: "high".to_string(),
             resolution: "1080".to_string(),
@@ -174,8 +183,9 @@ fn correct_filename(path: &str, filename: String) {
         new_name = tmp[0].clone() + "." + &s;
     }
 
-    new_name = new_name.replace(' ', "_");
-
+    if new_name.contains(' ') {
+        new_name = new_name.replace(' ', "_");
+    }
     let mut chars: Vec<char> = new_name.chars().collect();
 
     if chars[chars.len() - 5] == '_' {
@@ -187,9 +197,34 @@ fn correct_filename(path: &str, filename: String) {
     }
 
     let mut new_name = chars.iter().collect::<String>();
-
+    if new_name.contains("___") {
+        new_name = new_name.replace("___", "_");
+    }
     new_name = new_name.trim().to_string();
-    new_name = new_name.replace(" ", "");
+    if new_name.contains('/') {
+        new_name = new_name.replace('/', "");
+    }
+    if new_name.contains("__") {
+        new_name = new_name.replace("__", "_");
+    }
+    if new_name.contains("_(Official_Music_Video)") {
+        new_name = new_name.replace("_(Official_Music_Video)", "");
+    }
+    if new_name.contains("_(Music_Video)") {
+        new_name = new_name.replace("_(Music_Video)", "");
+    }
+    if new_name.contains("_(Live)") {
+        new_name = new_name.replace("_(Live)", "");
+    }
+    if new_name.contains("_(Music)") {
+        new_name = new_name.replace("_(Music)", "");
+    }
+    if new_name.contains("_(Official_Live_Video)") {
+        new_name = new_name.replace("_(Official_Live_Video)", "");
+    }
+    if new_name.contains(" ") {
+        new_name = new_name.replace(" ", "");
+    }
     if new_name != filename {
         let path = Path::new(path);
 
@@ -220,9 +255,9 @@ fn extract(video: Video) {
         println!("{}", String::from_utf8_lossy(&output.stdout));
     }
 }
+
 fn main() {
     let cli = Cli::parse();
-    println!("Downloading videos");
 
     if !cli.file.is_empty() {
         let file = expand_tilde(PathBuf::from(&cli.file))
@@ -233,8 +268,56 @@ fn main() {
         if file.canonicalize().unwrap().exists() {
             let file = file.canonicalize().unwrap().to_string_lossy().to_string();
             let mut videos = Videos::from_file(file).unwrap_or_else(|e| panic!("{}", e));
-            run_fast(videos.to_videos());
-            some_correction(videos.path.as_str()).unwrap_or_else(|e| panic!("{}", e))
+            let mut ids: Vec<String> = Vec::new();
+
+            for v in videos.clone().videos {
+                ids.push(api::extract_id(v.as_str()));
+            }
+
+            let mut titles: Vec<String> = Vec::new();
+
+            let v = videos.to_videos();
+            let v: Vec<Video> = v
+                .into_par_iter()
+                .map(|id| api::get_video_title(id))
+                .map(|title| api::correct_title(title))
+                .collect();
+
+            let v: Vec<Video> = v
+                .into_iter()
+                .filter(|v| !v.title.is_empty())
+                .filter(|video| {
+                    let path = Path::new(&video.path);
+
+                    if path.is_dir() {
+                        let walker = walkdir::WalkDir::new(path).into_iter();
+                        let mut out = false;
+                        for entry in walker.filter_entry(|e| !is_hidden(e) || !is_dir(e)) {
+                            if let Ok(entry) = entry {
+                                if entry.path().is_file() {
+                                    let s = entry.path().to_string_lossy().to_string();
+
+                                    if s.contains(video.title.as_str()) {
+                                        return false;
+                                    }
+                                }
+                            }
+                        }
+                        return true;
+                    } else {
+                        return false;
+                    }
+                })
+                .collect();
+
+            if !v.is_empty() {
+                println!("Downloading videos");
+
+                run_fast(v);
+                some_correction(videos.path.as_str()).unwrap_or_else(|e| panic!("{}", e))
+            } else {
+                println!("No videos found");
+            }
         } else {
             println!("File not found");
         }
